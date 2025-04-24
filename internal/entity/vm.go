@@ -1,14 +1,17 @@
 package entity
 
 // VMStateType represents the VM running state type.
-type VMStateType uint8
+type VMStateType string
 
 // VM running state.
 const (
-	VMStatusRunning  VMStateType = 1
-	VMStatusPaused   VMStateType = 2
-	VMStatusShutdown VMStateType = 3
-	VMStatusShutOff  VMStateType = 4
+	VMStatusCreating VMStateType = "creating"
+	VMStatusRunning  VMStateType = "running"
+	VMStatusStarting VMStateType = "starting"
+	VMStatusStopping VMStateType = "stopping"
+	VMStatusPaused   VMStateType = "paused"
+	VMStatusShutdown VMStateType = "shutdown"
+	VMStatusShutOff  VMStateType = "shutoff"
 )
 
 // VM represents a virtual machine object.

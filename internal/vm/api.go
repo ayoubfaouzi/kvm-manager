@@ -31,9 +31,9 @@ func (r resource) create(c echo.Context) error {
 		return errors.BadRequest("")
 	}
 
-	file, err := r.service.Create(ctx, input)
+	vm, err := r.service.Create(ctx, input)
 	if err != nil {
 		return err
 	}
-	return c.JSON(http.StatusCreated, file)
+	return c.JSON(http.StatusCreated, vm)
 }

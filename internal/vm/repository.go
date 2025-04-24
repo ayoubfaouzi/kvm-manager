@@ -4,12 +4,14 @@ import (
 	"context"
 
 	"github.com/ayoubfaouzi/kvm-manager/internal/entity"
+	"github.com/ayoubfaouzi/kvm-manager/internal/vmmgr"
 	"github.com/ayoubfaouzi/kvm-manager/pkg/log"
 )
 
 // repository persists files in database.
 type repository struct {
 	logger log.Logger
+	vmMgr  vmmgr.VMManager
 }
 
 // Repository encapsulates the logic to access files from the data source.
@@ -19,8 +21,8 @@ type Repository interface {
 }
 
 // NewRepository creates a new vm repository.
-func NewRepository(logger log.Logger) Repository {
-	return repository{logger}
+func NewRepository(logger log.Logger, vmMgr vmmgr.VMManager) Repository {
+	return repository{logger, vmMgr}
 }
 
 // Create saves a new VM in QEMU/KVM server.

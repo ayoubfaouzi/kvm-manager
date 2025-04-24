@@ -14,6 +14,15 @@ type BrokerCfg struct {
 	Topic string `mapstructure:"topic"`
 }
 
+// VMMgrCfg represents the VM manager config.
+type VMMgrCfg struct {
+	// The URI for the VM manager (e.g Libvirt server).
+	URI string `mapstructure:"uri"`
+	// Location of the disk images (e.g QCOW2 images).
+	ImageDir string `mapstructure:"image_dir"`
+
+}
+
 // Config represents our application config.
 type Config struct {
 	// The IP:Port. Defaults to 8080.
@@ -22,6 +31,8 @@ type Config struct {
 	LogLevel string `mapstructure:"log_level"`
 	// Broker server configuration.
 	Broker BrokerCfg `mapstructure:"nsq"`
+	// VM Manager configuration.
+	VMMgr VMMgrCfg `mapstructure:"libvirt"`
 }
 
 // Load returns an application configuration which is populated

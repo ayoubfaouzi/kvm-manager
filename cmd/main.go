@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/ayoubfaouzi/kvm-manager/internal/config"
+	"github.com/ayoubfaouzi/kvm-manager/internal/entity"
 	"github.com/ayoubfaouzi/kvm-manager/internal/queue"
 	"github.com/go-playground/locales/en"
 	ut "github.com/go-playground/universal-translator"
@@ -16,6 +17,7 @@ import (
 	en_translations "github.com/go-playground/validator/v10/translations/en"
 
 	"github.com/ayoubfaouzi/kvm-manager/internal/server"
+	"github.com/ayoubfaouzi/kvm-manager/internal/vmmgr"
 
 	"github.com/ayoubfaouzi/kvm-manager/pkg/log"
 )
@@ -65,9 +67,17 @@ func run(logger log.Logger) error {
 		return err
 	}
 
+	// Connect to the VM Manager.
+	vmManager, err := vmmgr.New(logger, entity.NodeInstance{
+		LibVirtURI:      cfg.VMMgr.URI,
+		LibVirtImageDir: cfg.VMMgr.ImageDir})
+	if err != nil {
+		return err
+	}
+
 	hs := &http.Server{
 		Addr:    cfg.Address,
-		Handler: server.BuildHandler(logger, cfg, Version, trans, producer),
+		Handler: server.BuildHandler(logger, cfg, Version, trans, producer, vmManager),
 	}
 
 	// Start server.

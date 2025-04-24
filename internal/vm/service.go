@@ -2,11 +2,17 @@ package vm
 
 import (
 	"context"
+	"time"
 
 	"github.com/ayoubfaouzi/kvm-manager/pkg/log"
 	"github.com/google/uuid"
 
 	"github.com/ayoubfaouzi/kvm-manager/internal/entity"
+)
+
+const (
+	// #TODO: allow user to choose OS image.
+	OSFlavor = "linux-alpine"
 )
 
 type VM struct {
@@ -39,8 +45,15 @@ func (s service) Create(ctx context.Context, req CreateVMRequest) (
 	VM, error) {
 
 	id := uuid.New().String()
+	now := time.Now().UTC()
+	name := "lx-" + OSFlavor + now.Format("-01022006")
 	newVM := entity.VM{
-		State: entity.VMStatusShutOff,
+		ID:    id,
+		Name:  name,
+		CPU: req.CPU,
+		Disk: req.Disk,
+		Memory: req.Memory,
+		State: entity.VMStatusCreating,
 	}
 	err := s.repo.Create(ctx, id, newVM)
 	if err != nil {

@@ -8,6 +8,7 @@ import (
 	"github.com/ayoubfaouzi/kvm-manager/internal/errors"
 	"github.com/ayoubfaouzi/kvm-manager/internal/queue"
 	"github.com/ayoubfaouzi/kvm-manager/internal/vm"
+	"github.com/ayoubfaouzi/kvm-manager/internal/vmmgr"
 	"github.com/ayoubfaouzi/kvm-manager/pkg/log"
 	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"
@@ -21,7 +22,8 @@ const (
 )
 
 // BuildHandler sets up the HTTP routing and builds an HTTP handler.
-func BuildHandler(logger log.Logger, cfg *config.Config, version string, trans ut.Translator, p queue.Producer) http.Handler {
+func BuildHandler(logger log.Logger, cfg *config.Config, version string,
+	trans ut.Translator, p queue.Producer, vmMgr vmmgr.VMManager) http.Handler {
 
 	// Create `echo` instance.
 	e := echo.New()
@@ -49,6 +51,10 @@ func BuildHandler(logger log.Logger, cfg *config.Config, version string, trans u
 	// Register a custom binder.
 	e.Binder = &CustomBinder{b: &echo.DefaultBinder{}}
 
+	// Register a custom fields validator.
+	validate := validator.New()
+	e.Validator = &CustomValidator{validator: validate}
+
 	// Setup a custom HTTP error handler.
 	e.HTTPErrorHandler = CustomHTTPErrorHandler(trans)
 
@@ -56,7 +62,7 @@ func BuildHandler(logger log.Logger, cfg *config.Config, version string, trans u
 	g := e.Group("/v1")
 
 	// Create the services and register the handlers.
-	vmSvc := vm.NewService(vm.NewRepository(logger), logger)
+	vmSvc := vm.NewService(vm.NewRepository(logger, vmMgr), logger)
 
 	// Register the handlers.
 	vm.RegisterHandlers(g, vmSvc, logger)
