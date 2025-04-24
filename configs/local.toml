@@ -1,0 +1,9 @@
+# Config used for local development.
+
+# General app config.
+address = ":8081" # The IP:Port. Defaults to 8081.
+log_level = "debug" # Log level. Defaults to info.
+
+[nsq]
+address = "localhost:4150" # The data source name (DSN) for connecting to the broker server (NSQD).
+topic = "topic-vm-management" # Topic name to produce to.
