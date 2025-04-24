@@ -52,21 +52,22 @@ func New(logger log.Logger, node entity.NodeInstance) (VMManager, error) {
 func (vmm VMManager) CreateVM(vm entity.VM) (entity.VM, int, error) {
 
 	baseImgName := filepath.Join(vmm.imgDir, linuxAlpineBaseImage)
-	if _, err := os.Stat(baseImgName); os.IsNotExist(err) {
-		return entity.VM{}, 400, errors.New(baseImgName + " image not found")
-	}
+	// if _, err := os.Stat(baseImgName); os.IsNotExist(err) {
+	// 	return entity.VM{}, 400, errors.New(baseImgName + " image not found")
+	// }
 
 	destImgName := filepath.Join(vmm.imgDir, vm.Name+".qcow2")
 	vmm.logger.Info("Copying image", baseImgName, "to", destImgName)
-	err := copyFile(baseImgName, destImgName)
-	if err != nil {
-		return entity.VM{}, 500, err
-	}
+	// err := copyFile(baseImgName, destImgName)
+	// if err != nil {
+	// 	return entity.VM{}, 500, err
+	// }
+
 	vmm.logger.Info("Resizing image", destImgName, "to", vm.Disk, "GB")
-	err = vmm.ResizeImage(destImgName, int(vm.Disk))
-	if err != nil {
-		return entity.VM{}, 500, err
-	}
+	// err = vmm.ResizeImage(destImgName, int(vm.Disk))
+	// if err != nil {
+	// 	return entity.VM{}, 500, err
+	// }
 
 	domainXML := libvirtxml.Domain{
 		Type: "kvm",
@@ -161,11 +162,13 @@ func (vmm VMManager) CreateVM(vm entity.VM) (entity.VM, int, error) {
 }
 
 // GetVM gets the vm.
-func (vmm VMManager) GetVM(vm entity.VM) (entity.VM, error) {
-	domain, err := vmm.conn.LookupDomainByUUIDString(vm.ID)
+func (vmm VMManager) GetVM(id string) (entity.VM, error) {
+	domain, err := vmm.conn.LookupDomainByUUIDString(id)
 	if err != nil {
 		return entity.VM{}, err
 	}
+
+	var vm entity.VM
 	vm.Name, err = domain.GetName()
 	if err != nil {
 		return entity.VM{}, err
@@ -179,8 +182,8 @@ func (vmm VMManager) GetVM(vm entity.VM) (entity.VM, error) {
 }
 
 // StartVM starts the vm.
-func (vmm VMManager) StartVM(vm entity.VM) error {
-	domain, err := vmm.conn.LookupDomainByUUIDString(vm.ID)
+func (vmm VMManager) StartVM(id string) error {
+	domain, err := vmm.conn.LookupDomainByUUIDString(id)
 	if err != nil {
 		return err
 	}
@@ -198,8 +201,8 @@ func (vmm VMManager) StartVM(vm entity.VM) error {
 }
 
 // DeleteVM deletes the vm.
-func (vmm VMManager) DeleteVM(vm entity.VM) error {
-	domain, err := vmm.conn.LookupDomainByUUIDString(vm.ID)
+func (vmm VMManager) DeleteVM(id string) error {
+	domain, err := vmm.conn.LookupDomainByUUIDString(id)
 	if err != nil {
 		return fmt.Errorf("failed to lookup domain: %w", err)
 	}
@@ -229,8 +232,8 @@ func (vmm VMManager) DeleteVM(vm entity.VM) error {
 }
 
 // StopVM stops the vm.
-func (vmm VMManager) StopVM(vm entity.VM) error {
-	domain, err := vmm.conn.LookupDomainByUUIDString(vm.ID)
+func (vmm VMManager) StopVM(id string) error {
+	domain, err := vmm.conn.LookupDomainByUUIDString(id)
 	if err != nil {
 		return err
 	}
@@ -246,6 +249,26 @@ func (vmm VMManager) StopVM(vm entity.VM) error {
 	}
 	return nil
 }
+
+// RebootVM stops the vm.
+func (vmm VMManager) RebootVM(id string) error {
+	domain, err := vmm.conn.LookupDomainByUUIDString(id)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		err := domain.Free()
+		if err != nil {
+			return
+		}
+	}()
+	err = domain.Reboot(libvirt.DOMAIN_REBOOT_DEFAULT)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 
 // ListVMs lists the vms.
 func (vmm VMManager) ListVMs(active, inactive bool) ([]entity.VM, error) {
