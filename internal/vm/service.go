@@ -48,12 +48,12 @@ func (s service) Create(ctx context.Context, req CreateVMRequest) (
 	now := time.Now().UTC()
 	name := "lx-" + OSFlavor + now.Format("-01022006")
 	newVM := entity.VM{
-		ID:    id,
-		Name:  name,
-		CPU: req.CPU,
-		Disk: req.Disk,
+		ID:     id,
+		Name:   name,
+		CPU:    req.CPU,
+		Disk:   req.Disk,
 		Memory: req.Memory,
-		State: entity.VMStateCreating,
+		State:  entity.VMStateCreating,
 	}
 	err := s.repo.Create(ctx, id, newVM)
 	if err != nil {

@@ -2,9 +2,19 @@ package vmmgr
 
 import (
 	"context"
+	"encoding/xml"
 	"errors"
 	"fmt"
+	"io"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"regexp"
+	"strconv"
+	"strings"
 	"time"
+
+	"libvirt.org/go/libvirtxml"
 
 	"github.com/ayoubfaouzi/kvm-manager/internal/entity"
 	"github.com/ayoubfaouzi/kvm-manager/pkg/log"
@@ -14,7 +24,13 @@ import (
 type VMManager struct {
 	logger log.Logger
 	conn   *libvirt.Connect
+	imgDir string
 }
+
+const (
+	// Base images names.
+	linuxAlpineBaseImage = "alpinelinux3.21.qcow2"
+)
 
 // New initializes the VM manager service.
 func New(logger log.Logger, node entity.NodeInstance) (VMManager, error) {
@@ -29,7 +45,119 @@ func New(logger log.Logger, node entity.NodeInstance) (VMManager, error) {
 		return VMManager{}, err
 	}
 
-	return VMManager{logger, conn}, nil
+	return VMManager{logger, conn, node.LibVirtImageDir}, nil
+}
+
+// CreateVM creates the vm.
+func (vmm VMManager) CreateVM(vm entity.VM) (entity.VM, int, error) {
+
+	baseImgName := filepath.Join(vmm.imgDir, linuxAlpineBaseImage)
+	if _, err := os.Stat(baseImgName); os.IsNotExist(err) {
+		return entity.VM{}, 400, errors.New(baseImgName + " image not found")
+	}
+
+	destImgName := filepath.Join(vmm.imgDir, vm.Name+".qcow2")
+	vmm.logger.Info("Copying image", baseImgName, "to", destImgName)
+	err := copyFile(baseImgName, destImgName)
+	if err != nil {
+		return entity.VM{}, 500, err
+	}
+	vmm.logger.Info("Resizing image", destImgName, "to", vm.Disk, "GB")
+	err = vmm.ResizeImage(destImgName, int(vm.Disk))
+	if err != nil {
+		return entity.VM{}, 500, err
+	}
+
+	domainXML := libvirtxml.Domain{
+		Type: "kvm",
+		Name: vm.Name,
+		Memory: &libvirtxml.DomainMemory{
+			Value: uint(vm.Memory),
+			Unit:  "MB",
+		},
+		VCPU: &libvirtxml.DomainVCPU{
+			Value: vm.CPU,
+		},
+		OS: &libvirtxml.DomainOS{
+			Type: &libvirtxml.DomainOSType{
+				Arch:    "x86_64",
+				Machine: "pc",
+				Type:    "hvm",
+			},
+			BootDevices: []libvirtxml.DomainBootDevice{
+				{
+					Dev: "hd",
+				},
+			},
+		},
+		Devices: &libvirtxml.DomainDeviceList{
+			Disks: []libvirtxml.DomainDisk{
+				{
+					Device: "disk",
+					Driver: &libvirtxml.DomainDiskDriver{
+						Name: "qemu",
+						Type: "qcow2",
+					},
+					Source: &libvirtxml.DomainDiskSource{
+						File: &libvirtxml.DomainDiskSourceFile{
+							File: destImgName,
+						},
+					},
+					Target: &libvirtxml.DomainDiskTarget{
+						Dev: "sda",
+						Bus: "virtio",
+					},
+				},
+			},
+			Interfaces: []libvirtxml.DomainInterface{
+				{
+					Source: &libvirtxml.DomainInterfaceSource{
+						Network: &libvirtxml.DomainInterfaceSourceNetwork{
+							Network: "default",
+						},
+					},
+					Model: &libvirtxml.DomainInterfaceModel{
+						Type: "virtio",
+					},
+				},
+			},
+		},
+	}
+	vmxml, err := domainXML.Marshal()
+	if err != nil {
+		return entity.VM{}, 500, err
+	}
+	domain, err := vmm.conn.DomainDefineXML(vmxml)
+	if err != nil {
+		return entity.VM{}, 500, err
+	}
+	defer func() {
+		err := domain.Free()
+		if err != nil {
+			return
+		}
+	}()
+	err = domain.Create()
+	if err != nil {
+		return entity.VM{}, 500, err
+	}
+	id, err := domain.GetUUIDString()
+	if err != nil {
+		return entity.VM{}, 500, err
+	}
+	vmDesc, err := domain.GetXMLDesc(libvirt.DomainXMLFlags(0))
+	if err != nil {
+		return entity.VM{}, 500, err
+	}
+	var vmXML libvirtxml.Domain
+	err = xml.Unmarshal([]byte(vmDesc), &vmXML)
+	if err != nil {
+		return entity.VM{}, 500, err
+	}
+
+	vm.ID = id
+	vm.State = entity.VMStateRunning
+	return vm, 200, nil
 }
 
 // GetVM gets the vm.
@@ -181,4 +309,58 @@ func ParseState(state libvirt.DomainState) entity.VMStateType {
 		return entity.VMStatePMSuspended
 	}
 	return entity.VMStateUnknown
+}
+
+// ResizeImage resizes the image.
+func (vmm VMManager) ResizeImage(image string, newSize int) error {
+	imgInfo, err := exec.Command("qemu-img", "info", image).CombinedOutput()
+	if err != nil {
+		return err
+	}
+	lines := strings.Split(string(imgInfo), "\n")
+	re := regexp.MustCompile(`^virtual size: (\d+)`)
+	var virtualSize string
+	for _, line := range lines {
+		if re.MatchString(line) {
+			matches := re.FindStringSubmatch(line)
+			virtualSize = matches[1]
+			break
+		}
+	}
+	size, err := strconv.Atoi(virtualSize)
+	if err != nil {
+		return err
+	}
+	var cmdStrings []string
+	if size < newSize {
+		cmdStrings = []string{"resize", image, strconv.Itoa(newSize) + "G"}
+	} else {
+		cmdStrings = []string{"resize", "--shrink", image, strconv.Itoa(newSize) + "G"}
+	}
+	cmd := exec.Command("qemu-img", cmdStrings...)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		vmm.logger.Info(string(output))
+		return err
+	}
+	return nil
+}
+
+// copyFile copies the file.
+func copyFile(src, dst string) error {
+	srcFile, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer srcFile.Close()
+	dstFile, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer dstFile.Close()
+	_, err = io.Copy(dstFile, srcFile)
+	if err != nil {
+		return err
+	}
+	return nil
 }
