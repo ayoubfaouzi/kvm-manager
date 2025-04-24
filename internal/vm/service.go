@@ -53,7 +53,7 @@ func (s service) Create(ctx context.Context, req CreateVMRequest) (
 		CPU: req.CPU,
 		Disk: req.Disk,
 		Memory: req.Memory,
-		State: entity.VMStatusCreating,
+		State: entity.VMStateCreating,
 	}
 	err := s.repo.Create(ctx, id, newVM)
 	if err != nil {

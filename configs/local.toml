@@ -9,5 +9,5 @@ address = "localhost:4150" # The data source name (DSN) for connecting to the br
 topic = "topic-vm-management" # Topic name to produce to.
 
 [libvirt]
-uri = "172.29.82.246" # Libvirt server URI.
+uri = "qemu+tcp://172.26.216.92:16509/system" # Libvirt server URI.
 image_dir = "/var/lib/libvirt/images" # Libvirt image directory.

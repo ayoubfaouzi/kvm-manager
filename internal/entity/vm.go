@@ -5,13 +5,20 @@ type VMStateType string
 
 // VM running state.
 const (
-	VMStatusCreating VMStateType = "creating"
-	VMStatusRunning  VMStateType = "running"
-	VMStatusStarting VMStateType = "starting"
-	VMStatusStopping VMStateType = "stopping"
-	VMStatusPaused   VMStateType = "paused"
-	VMStatusShutdown VMStateType = "shutdown"
-	VMStatusShutOff  VMStateType = "shutoff"
+	VMStateNoState     VMStateType = "nostate"
+	VMStateRunning     VMStateType = "running"
+	VMStateBlocked     VMStateType = "blocked"
+	VMStatePaused      VMStateType = "paused"
+	VMStateShutdown    VMStateType = "shutdown"
+	VMStateShutOff     VMStateType = "shutoff"
+	VMStateCrashed     VMStateType = "crashed"
+	VMStatePMSuspended VMStateType = "pmsuspended"
+
+	// Other state for tracking progress.
+	VMStateUnknown  VMStateType = "unknown"
+	VMStateCreating VMStateType = "creating"
+	VMStateStarting VMStateType = "starting"
+	VMStateStopping VMStateType = "stopping"
 )
 
 // VM represents a virtual machine object.
