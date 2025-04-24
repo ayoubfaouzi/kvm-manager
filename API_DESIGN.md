@@ -193,7 +193,7 @@ An example of a VM resource detail in an HTTP response will look like:
 > |-----------|--------------|----------|
 > | `200` | `application/json` | `{"status":"success","message": "VM deleted successfully", "data": { VMObject } }`|
 > | `404` | `application/json` | `{"status":"error", "message": "VM not found", "error": {}`|
-> | `500` | `application/json` | `{"status":"error", "message": "Something went wrong while deleting the VM's data", "error": {}`|
+> | `500` | `application/json` | `{"status":"error", "message": "Something went wrong while deleting the VM", "error": {}`|
 
 ##### Example cURL
 
@@ -216,7 +216,7 @@ An example of a VM resource detail in an HTTP response will look like:
 > |-----------|--------------|----------|
 > | `200` | `application/json` | `{"status":"success","message": "VM started successfully", "data": { VMObject } }`|
 > | `404` | `application/json` | `{"status":"error", "message": "VM not found", "error": {}`|
-> | `500` | `application/json` | `{"status":"error", "message": "Something went wrong while starting the VM's data", "error": {}`|
+> | `500` | `application/json` | `{"status":"error", "message": "Something went wrong while starting the VM", "error": {}`|
 
 ##### Example cURL
 
@@ -238,7 +238,7 @@ An example of a VM resource detail in an HTTP response will look like:
 > |-----------|--------------|----------|
 > | `200` | `application/json` | `{"status":"success","message": "VM stopped successfully", "data": { VMObject } }`|
 > | `404` | `application/json` | `{"status":"error", "message": "VM not found", "error": {}`|
-> | `500` | `application/json` | `{"status":"error", "message": "Something went wrong while stopping the VM's data", "error": {}`|
+> | `500` | `application/json` | `{"status":"error", "message": "Something went wrong while stopping the VM", "error": {}`|
 
 ##### Example cURL
 
@@ -260,7 +260,7 @@ An example of a VM resource detail in an HTTP response will look like:
 > |-----------|--------------|----------|
 > | `200` | `application/json` | `{"status":"success","message": "VM restarted successfully", "data": { VMObject } }`|
 > | `404` | `application/json` | `{"status":"error", "message": "VM not found", "error": {}`|
-> | `500` | `application/json` | `{"status":"error", "message": "Something went wrong while restarting the VM's data", "error": {}`|
+> | `500` | `application/json` | `{"status":"error", "message": "Something went wrong while restarting the VM", "error": {}`|
 
 ##### Example cURL
 
@@ -282,7 +282,7 @@ An example of a VM resource detail in an HTTP response will look like:
 > |-----------|--------------|----------|
 > | `200` | `application/json` | `{"status":"success","message": "VM restarted successfully", "data": { VMObject } }`|
 > | `404` | `application/json` | `{"status":"error", "message": "VM not found", "error": {}`|
-> | `500` | `application/json` | `{"status":"error", "message": "Something went wrong while restarting the VM's data", "error": {}`|
+> | `500` | `application/json` | `{"status":"error", "message": "Something went wrong while retrieving the VM's statistics", "error": {}`|
 
 ##### Example cURL
 
