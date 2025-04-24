@@ -52,22 +52,22 @@ func New(logger log.Logger, node entity.NodeInstance) (VMManager, error) {
 func (vmm VMManager) CreateVM(vm entity.VM) (entity.VM, int, error) {
 
 	baseImgName := filepath.Join(vmm.imgDir, linuxAlpineBaseImage)
-	// if _, err := os.Stat(baseImgName); os.IsNotExist(err) {
-	// 	return entity.VM{}, 400, errors.New(baseImgName + " image not found")
-	// }
+	if _, err := os.Stat(baseImgName); os.IsNotExist(err) {
+		return entity.VM{}, 400, errors.New(baseImgName + " image not found")
+	}
 
 	destImgName := filepath.Join(vmm.imgDir, vm.Name+".qcow2")
 	vmm.logger.Info("Copying image", baseImgName, "to", destImgName)
-	// err := copyFile(baseImgName, destImgName)
-	// if err != nil {
-	// 	return entity.VM{}, 500, err
-	// }
+	err := copyFile(baseImgName, destImgName)
+	if err != nil {
+		return entity.VM{}, 500, err
+	}
 
 	vmm.logger.Info("Resizing image", destImgName, "to", vm.Disk, "GB")
-	// err = vmm.ResizeImage(destImgName, int(vm.Disk))
-	// if err != nil {
-	// 	return entity.VM{}, 500, err
-	// }
+	err = vmm.ResizeImage(destImgName, int(vm.Disk))
+	if err != nil {
+		return entity.VM{}, 500, err
+	}
 
 	domainXML := libvirtxml.Domain{
 		Type: "kvm",
@@ -268,7 +268,6 @@ func (vmm VMManager) RebootVM(id string) error {
 	}
 	return nil
 }
-
 
 // ListVMs lists the vms.
 func (vmm VMManager) ListVMs(active, inactive bool) ([]entity.VM, error) {
