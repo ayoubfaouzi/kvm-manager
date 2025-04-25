@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/rand"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -130,6 +131,9 @@ func (vmm VMManager) CreateVM(vm entity.VM) (entity.VM, int, error) {
 					},
 					Model: &libvirtxml.DomainInterfaceModel{
 						Type: "virtio",
+					},
+					MAC: &libvirtxml.DomainInterfaceMAC{
+						Address: generateMAC(),
 					},
 				},
 			},
@@ -263,6 +267,7 @@ func (vmm VMManager) StartVM(id string) error {
 
 // DeleteVM deletes the vm.
 func (vmm VMManager) DeleteVM(id string) error {
+
 	domain, err := vmm.conn.LookupDomainByUUIDString(id)
 	if err != nil {
 		return fmt.Errorf("failed to lookup domain: %w", err)
@@ -273,11 +278,13 @@ func (vmm VMManager) DeleteVM(id string) error {
 			return
 		}
 	}()
+
 	active, err := domain.IsActive()
 	if err != nil {
 		return fmt.Errorf("failed to check domain status: %w", err)
 	}
 
+	// Destroy if running
 	if active {
 		err = domain.Destroy()
 		if err != nil {
@@ -285,10 +292,24 @@ func (vmm VMManager) DeleteVM(id string) error {
 		}
 	}
 
+	// Undefine
 	err = domain.Undefine()
 	if err != nil {
 		return fmt.Errorf("failed to undefine domain: %w", err)
 	}
+
+	// Destroy if running.
+	disks, err := vmm.GetVMDiskPaths(id)
+	if err != nil {
+		return fmt.Errorf("failed to retrieve vm disks paths: %w", err)
+	}
+
+	for _, disk := range disks {
+		if err := os.Remove(disk); err != nil {
+			return fmt.Errorf("failed to remove disk path domain: %w", err)
+		}
+	}
+
 	return nil
 }
 
@@ -478,6 +499,35 @@ func (vmm VMManager) ResizeImage(image string, newSize int) error {
 	return nil
 }
 
+// GetVMDiskPaths returns local file-based disks.
+func (vmm VMManager) GetVMDiskPaths(id string) ([]string, error) {
+
+	dom, err := vmm.conn.LookupDomainByUUIDString(id)
+	if err != nil {
+		return nil, fmt.Errorf("failed to lookup domain by ID: %w", err)
+	}
+	defer dom.Free()
+
+	xmlDesc, err := dom.GetXMLDesc(0)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get domain XML: %w", err)
+	}
+
+	var domCfg libvirtxml.Domain
+	if err := xml.Unmarshal([]byte(xmlDesc), &domCfg); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal domain XML: %w", err)
+	}
+
+	var diskPaths []string
+	for _, disk := range domCfg.Devices.Disks {
+		if disk.Device == "disk" && disk.Source != nil && disk.Source.File != nil {
+			diskPaths = append(diskPaths, disk.Source.File.File)
+		}
+	}
+
+	return diskPaths, nil
+}
+
 // copyFile copies the file.
 func copyFile(src, dst string) error {
 	srcFile, err := os.Open(src)
@@ -495,4 +545,13 @@ func copyFile(src, dst string) error {
 		return err
 	}
 	return nil
+}
+
+// generateMAC generates a mac address.
+func generateMAC() string {
+	source := rand.NewSource(time.Now().UnixNano())
+	rng := rand.New(source)
+	// Locally administered MAC: starts with 0x52:54:00 (QEMU default prefix)
+	return fmt.Sprintf("52:54:00:%02x:%02x:%02x",
+		rng.Intn(256), rng.Intn(256), rng.Intn(256))
 }

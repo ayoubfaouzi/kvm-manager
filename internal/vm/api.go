@@ -6,6 +6,7 @@ import (
 	"github.com/ayoubfaouzi/kvm-manager/pkg/log"
 	"github.com/ayoubfaouzi/kvm-manager/pkg/pagination"
 
+	"github.com/ayoubfaouzi/kvm-manager/internal/entity"
 	"github.com/ayoubfaouzi/kvm-manager/internal/errors"
 	"github.com/labstack/echo/v4"
 )
@@ -43,7 +44,11 @@ func (r resource) create(c echo.Context) error {
 	if err != nil {
 		return err
 	}
-	return c.JSON(http.StatusCreated, vm)
+	return c.JSON(http.StatusOK, struct {
+		Status  string    `json:"status"`
+		Message string    `json:"message"`
+		VM      entity.VM `json:"item"`
+	}{"ok", "vm created successfully", vm.VM})
 }
 
 func (r resource) list(c echo.Context) error {
