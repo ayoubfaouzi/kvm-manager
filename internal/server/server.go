@@ -53,6 +53,7 @@ func BuildHandler(logger log.Logger, cfg *config.Config, version string,
 
 	// Register a custom fields validator.
 	validate := validator.New()
+	_ = validate.RegisterValidation("at_least_one_io_throttle", validateVMThrottling)
 	e.Validator = &CustomValidator{validator: validate}
 
 	// Setup a custom HTTP error handler.
@@ -84,6 +85,12 @@ func (cv *CustomValidator) Validate(i interface{}) error {
 		return err
 	}
 	return nil
+}
+
+// validateVMThrottling checks if at least of the throttling parameters is provided.
+func validateVMThrottling(fl validator.FieldLevel) bool {
+	req := fl.Parent().Interface().(vm.CreateVMRequest)
+	return req.ReadBytesSec != 0 || req.WriteBytesSec != 0 || req.ReadIopsSec != 0 || req.WriteIopsSec != 0
 }
 
 // NewBinder initializes custom server binder.

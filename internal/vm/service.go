@@ -20,13 +20,13 @@ type VM struct {
 
 type CreateVMRequest struct {
 	Name          string `json:"name"`
-	CPU           uint   `json:"cpu"`
-	Memory        uint   `json:"memory"`
-	Disk          uint64 `json:"disk"`
-	ReadIopsSec   uint64 `json:"read_iops_sec"`
-	WriteIopsSec  uint64 `json:"write_iops_sec"`
-	ReadBytesSec  uint64 `json:"read_bytes_sec"`
-	WriteBytesSec uint64 `json:"write_bytes_sec"`
+	CPU           uint   `json:"cpu" validate:"required,gte=1,lte=1024" example:"2"`
+	Memory        uint   `json:"memory" validate:"required,gte=128,lte=1048576" example:"8192"` // In MiB
+	Disk          uint64 `json:"disk" validate:"required,gte=2,lte=2048000" example:"40"`       // In GiB
+	ReadIopsSec   uint64 `json:"read_iops_sec" validate:"at_least_one_io_throttle" example:"500"`
+	WriteIopsSec  uint64 `json:"write_iops_sec" validate:"at_least_one_io_throttle" example:"1000"`
+	ReadBytesSec  uint64 `json:"read_bytes_sec" validate:"at_least_one_io_throttle" example:"10"`  // In MiB
+	WriteBytesSec uint64 `json:"write_bytes_sec" validate:"at_least_one_io_throttle" example:"20"` // In MiB
 }
 
 type service struct {

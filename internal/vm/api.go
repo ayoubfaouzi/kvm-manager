@@ -7,7 +7,6 @@ import (
 	"github.com/ayoubfaouzi/kvm-manager/pkg/pagination"
 
 	"github.com/ayoubfaouzi/kvm-manager/internal/entity"
-	"github.com/ayoubfaouzi/kvm-manager/internal/errors"
 	"github.com/labstack/echo/v4"
 )
 
@@ -36,8 +35,8 @@ func (r resource) create(c echo.Context) error {
 
 	var input CreateVMRequest
 	if err := c.Bind(&input); err != nil {
-		r.logger.With(c.Request().Context()).Info(err)
-		return errors.BadRequest("")
+		r.logger.With(c.Request().Context()).Error(err)
+		return err
 	}
 
 	vm, err := r.service.Create(ctx, input)
