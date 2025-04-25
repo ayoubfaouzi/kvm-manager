@@ -306,7 +306,7 @@ func (vmm VMManager) DeleteVM(id string) error {
 
 	for _, disk := range disks {
 		if err := os.Remove(disk); err != nil {
-			return fmt.Errorf("failed to remove disk path domain: %w", err)
+			vmm.logger.Errorf("failed to remove disk path %s domain: %w", disk, err)
 		}
 	}
 
