@@ -17,7 +17,7 @@ type repository struct {
 // Repository encapsulates the logic to access files from the data source.
 type Repository interface {
 	// Create saves a new VM in the storage.
-	Create(ctx context.Context, vm entity.VM) (entity.VM, error)
+	Create(ctx context.Context, vm CreateVMRequest) (entity.VM, error)
 	// Get retrieves VM information from the server.
 	Get(ctx context.Context, id string) (entity.VM, error)
 	// List enumerates all VMs.
@@ -41,9 +41,18 @@ func NewRepository(logger log.Logger, vmMgr vmmgr.VMManager) Repository {
 
 // Create saves a new VM in QEMU/KVM server.
 // It returns the ID of the newly inserted VM record.
-func (r repository) Create(ctx context.Context, vm entity.VM) (entity.VM, error) {
+func (r repository) Create(ctx context.Context, req CreateVMRequest) (entity.VM, error) {
 
-	newVM, _, err := r.vmMgr.CreateVM(vm)
+	newVM, _, err := r.vmMgr.CreateVM(entity.VM{
+		Name:          req.Name,
+		CPU:           req.CPU,
+		Memory:        req.Memory,
+		Disk:          req.Disk,
+		ReadIopsSec:   req.ReadIopsSec,
+		WriteIopsSec:  req.WriteIopsSec,
+		ReadBytesSec:  req.ReadBytesSec,
+		WriteBytesSec: req.WriteBytesSec,
+	})
 	return newVM, err
 }
 
@@ -81,4 +90,3 @@ func (r repository) Restart(ctx context.Context, id string) error {
 func (r repository) Stats(ctx context.Context, id string) error {
 	return nil
 }
-

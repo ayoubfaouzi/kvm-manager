@@ -28,11 +28,11 @@ type VM struct {
 	State         VMStateType `json:"state"`
 	CPU           uint        `json:"cpu"`
 	Memory        uint        `json:"memory"`
-	Disk          uint        `json:"disk"`
-	ReadIopsSec   uint        `json:"read_iops_sec"`
-	WriteIopsSec  uint        `json:"write_iops_sec"`
-	TotalIopsSec  uint        `json:"total_iops_sec"`
-	ReadBytesSec  uint        `json:"read_bytes_sec"`
-	WriteBytesSec uint        `json:"write_bytes_sec"`
-	TotalBytesSec uint        `json:"total_bytes_sec"`
+	Disk          uint64      `json:"disk"`
+	ReadIopsSec   uint64     `json:"read_iops_sec,omitempty"`
+	WriteIopsSec  uint64     `json:"write_iops_sec,omitempty"`
+	TotalIopsSec  uint64     `json:"total_iops_sec,omitempty"`
+	ReadBytesSec  uint64     `json:"read_bytes_sec,omitempty"`
+	WriteBytesSec uint64     `json:"write_bytes_sec,omitempty"`
+	TotalBytesSec uint64     `json:"total_bytes_sec,omitempty"`
 }

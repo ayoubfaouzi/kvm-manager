@@ -108,6 +108,12 @@ func (vmm VMManager) CreateVM(vm entity.VM) (entity.VM, int, error) {
 						Dev: "sda",
 						Bus: "virtio",
 					},
+					IOTune: &libvirtxml.DomainDiskIOTune{
+						ReadBytesSec:  vm.ReadBytesSec * 1024 * 1024,
+						WriteBytesSec: vm.WriteBytesSec * 1024 * 1024,
+						ReadIopsSec:   vm.ReadIopsSec,
+						WriteIopsSec:  vm.WriteIopsSec,
+					},
 				},
 			},
 			Interfaces: []libvirtxml.DomainInterface{
@@ -177,8 +183,58 @@ func (vmm VMManager) GetVM(id string) (entity.VM, error) {
 	if err != nil {
 		return entity.VM{}, err
 	}
+
+	info, err := domain.GetInfo()
+	if err != nil {
+		return entity.VM{}, err
+	}
+	vm.Memory = uint(info.Memory) / 1024
+	vm.CPU = info.NrVirtCpu
+
+	xmlDesc, err := domain.GetXMLDesc(0)
+	if err != nil {
+		return entity.VM{}, err
+	}
+
+	type Domain struct {
+		Devices struct {
+			Disks []struct {
+				Target struct {
+					Dev string `xml:"dev,attr"`
+				} `xml:"target"`
+			} `xml:"disk"`
+		} `xml:"devices"`
+	}
+
+	var dom Domain
+	if err := xml.Unmarshal([]byte(xmlDesc), &dom); err != nil {
+		return entity.VM{}, err
+	}
+
+	for _, disk := range dom.Devices.Disks {
+		info, err := domain.GetBlockInfo(disk.Target.Dev, 0)
+		if err != nil {
+			vmm.logger.Debugf("Could not get info for %s: %v", disk.Target.Dev, err)
+			continue
+		}
+		vm.Disk = info.Capacity / (1 << 30)
+
+		stats, err := domain.GetBlockIoTune(disk.Target.Dev, 0)
+		if err != nil {
+			vmm.logger.Debugf("Failed to get block stats: %v", err)
+		}
+		vm.ReadBytesSec = stats.ReadBytesSec
+		vm.WriteBytesSec = stats.WriteBytesSec
+		vm.TotalBytesSec = stats.TotalBytesSec
+		vm.ReadIopsSec = stats.ReadIopsSec
+		vm.WriteIopsSec = stats.WriteIopsSec
+		vm.TotalIopsSec = stats.TotalIopsSec
+		break
+	}
+
 	vm.State = ParseState(state)
-	return entity.VM{}, nil
+	vm.ID = id
+	return vm, nil
 }
 
 // StartVM starts the vm.
@@ -243,10 +299,12 @@ func (vmm VMManager) StopVM(id string) error {
 			return
 		}
 	}()
+
 	err = domain.Destroy()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to destroy domain: %w", err)
 	}
+
 	return nil
 }
 
@@ -280,29 +338,20 @@ func (vmm VMManager) ListVMs(active, inactive bool) ([]entity.VM, error) {
 	}
 	domains, err := vmm.conn.ListAllDomains(flags)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list domains: %w", err)
+		return []entity.VM{}, fmt.Errorf("failed to list domains: %w", err)
 	}
 	for _, domain := range domains {
 		defer domain.Free()
 	}
 	vms := make([]entity.VM, 0, len(domains))
 	for _, domain := range domains {
-		name, err := domain.GetName()
-		if err != nil {
-			return nil, fmt.Errorf("failed to get domain name: %w", err)
-		}
-		state, _, err := domain.GetState()
-		if err != nil {
-			return nil, fmt.Errorf("failed to get domain state: %w", err)
-		}
 		id, err := domain.GetUUIDString()
 		if err != nil {
-			return nil, fmt.Errorf("failed to get domain id: %w", err)
+			return []entity.VM{}, fmt.Errorf("failed to get domain id: %w", err)
 		}
-		vm := entity.VM{
-			Name:  name,
-			State: ParseState(state),
-			ID:    id,
+		vm, err := vmm.GetVM(id)
+		if err != nil {
+			return []entity.VM{}, err
 		}
 		vms = append(vms, vm)
 	}

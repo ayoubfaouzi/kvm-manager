@@ -64,8 +64,11 @@ func BuildHandler(logger log.Logger, cfg *config.Config, version string,
 	// Create the services and register the handlers.
 	vmSvc := vm.NewService(vm.NewRepository(logger, vmMgr), logger)
 
+	// Create the middlewares.
+	vmMiddleware := vm.NewMiddleware(vmSvc, logger)
+
 	// Register the handlers.
-	vm.RegisterHandlers(g, vmSvc, logger)
+	vm.RegisterHandlers(g, vmSvc, logger, vmMiddleware.VerifyID)
 
 	return e
 }

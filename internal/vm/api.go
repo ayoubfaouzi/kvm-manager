@@ -15,18 +15,18 @@ type resource struct {
 	logger  log.Logger
 }
 
-func RegisterHandlers(g *echo.Group, service Service, logger log.Logger) {
+func RegisterHandlers(g *echo.Group, service Service, logger log.Logger, verifyID echo.MiddlewareFunc) {
 
 	res := resource{service, logger}
 
 	g.PUT("/vms/", res.create)
 	g.GET("/vms/", res.list)
-	g.GET("/vms/:id/", res.get)
-	g.DELETE("/vms/:id/", res.delete)
-	g.POST("/vms/:id/start/", res.start)
-	g.POST("/vms/:id/stop/", res.stop)
-	g.POST("/vms/:id/restart/", res.restart)
-	g.GET("/vms/:id/stats/", res.stats)
+	g.GET("/vms/:id/", res.get, verifyID)
+	g.DELETE("/vms/:id/", res.delete, verifyID)
+	g.POST("/vms/:id/start/", res.start, verifyID)
+	g.POST("/vms/:id/stop/", res.stop, verifyID)
+	g.POST("/vms/:id/restart/", res.restart, verifyID)
+	g.GET("/vms/:id/stats/", res.stats, verifyID)
 }
 
 func (r resource) create(c echo.Context) error {

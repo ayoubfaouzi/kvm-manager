@@ -85,6 +85,9 @@ func (p *Pages) Offset() int {
 
 // Limit returns the LIMIT value that can be used in a SQL statement.
 func (p *Pages) Limit() int {
+	if p.PerPage > p.TotalCount {
+		return p.TotalCount
+	}
 	return p.PerPage
 }
 

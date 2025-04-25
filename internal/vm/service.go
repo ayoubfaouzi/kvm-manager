@@ -19,9 +19,14 @@ type VM struct {
 }
 
 type CreateVMRequest struct {
-	CPU    uint `json:"cpu"`
-	Memory uint `json:"memory"`
-	Disk   uint `json:"disk"`
+	Name          string `json:"name"`
+	CPU           uint   `json:"cpu"`
+	Memory        uint   `json:"memory"`
+	Disk          uint64 `json:"disk"`
+	ReadIopsSec   uint64 `json:"read_iops_sec"`
+	WriteIopsSec  uint64 `json:"write_iops_sec"`
+	ReadBytesSec  uint64 `json:"read_bytes_sec"`
+	WriteBytesSec uint64 `json:"write_bytes_sec"`
 }
 
 type service struct {
@@ -52,15 +57,11 @@ func (s service) Create(ctx context.Context, req CreateVMRequest) (
 	VM, error) {
 
 	now := time.Now().UTC()
-	name := "lx-" + OSFlavor + now.Format("-01022006")
-	newVM := entity.VM{
-		Name:   name,
-		CPU:    req.CPU,
-		Disk:   req.Disk,
-		Memory: req.Memory,
-		State:  entity.VMStateCreating,
+
+	if req.Name == "" {
+		req.Name = "lx-" + OSFlavor + now.Format("-01022006")
 	}
-	newVM, err := s.repo.Create(ctx, newVM)
+	newVM, err := s.repo.Create(ctx, req)
 	if err != nil {
 		s.logger.With(ctx).Error(err)
 		return VM{}, err
@@ -92,6 +93,10 @@ func (s service) List(ctx context.Context, offset, limit int) (
 	vms, err := s.repo.List(ctx, offset, limit)
 	if err != nil {
 		return []VM{}, err
+	}
+
+	if limit > 0 {
+		vms = vms[offset:limit]
 	}
 
 	listVMs := []VM{}
