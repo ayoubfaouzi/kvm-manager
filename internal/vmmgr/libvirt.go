@@ -27,6 +27,11 @@ type VMManager struct {
 	imgDir string
 }
 
+type VMState struct {
+	CPUUsage      float64 `json:"cpu_usage"`
+	MemoryPercent float64 `json:"mem_percent"`
+}
+
 const (
 	// Base images names.
 	linuxAlpineBaseImage = "alpinelinux3.21.qcow2"
@@ -223,9 +228,9 @@ func (vmm VMManager) GetVM(id string) (entity.VM, error) {
 		if err != nil {
 			vmm.logger.Debugf("Failed to get block stats: %v", err)
 		}
-		vm.ReadBytesSec = stats.ReadBytesSec
-		vm.WriteBytesSec = stats.WriteBytesSec
-		vm.TotalBytesSec = stats.TotalBytesSec
+		vm.ReadBytesSec = stats.ReadBytesSec / 1024 / 1024
+		vm.WriteBytesSec = stats.WriteBytesSec / 1024 / 1024
+		vm.TotalBytesSec = stats.TotalBytesSec / 1024 / 1024
 		vm.ReadIopsSec = stats.ReadIopsSec
 		vm.WriteIopsSec = stats.WriteIopsSec
 		vm.TotalIopsSec = stats.TotalIopsSec
@@ -357,6 +362,62 @@ func (vmm VMManager) ListVMs(active, inactive bool) ([]entity.VM, error) {
 	}
 
 	return vms, nil
+}
+
+// GetStats returns CPU and memory stats.
+func (vmm VMManager) GetStats(id string) (VMState, error) {
+
+	domain, err := vmm.conn.LookupDomainByUUIDString(id)
+	if err != nil {
+		return VMState{}, err
+	}
+
+	// Get CPU usage
+	cpuStart, err := domain.GetCPUStats(-1, 1, 0)
+	if err != nil {
+		return VMState{}, err
+	}
+
+	startTime := cpuStart[0].CpuTime
+	time.Sleep(1 * time.Second)
+	cpuEnd, err := domain.GetCPUStats(-1, 1, 0)
+	if err != nil {
+		return VMState{}, err
+	}
+	endTime := cpuEnd[0].CpuTime
+
+	info, err := domain.GetInfo()
+	if err != nil {
+		return VMState{}, err
+	}
+
+	// CPU usage percentage over the interval
+	cpuDelta := endTime - startTime // in nanoseconds
+	cpuUsage := float64(cpuDelta) / (1e9 * float64(info.NrVirtCpu)) * 100
+
+	// Memory Usage
+	memStats, err := domain.MemoryStats(11, 0)
+	if err != nil {
+		return VMState{}, err
+	}
+
+	var available, unused uint64
+	for _, stat := range memStats {
+		switch stat.Tag {
+		case int32(libvirt.DOMAIN_MEMORY_STAT_AVAILABLE):
+			available = stat.Val
+		case int32(libvirt.DOMAIN_MEMORY_STAT_UNUSED):
+			unused = stat.Val
+		}
+	}
+
+	used := available - unused
+	memPercent := float64(used) / float64(available) * 100
+	return VMState{
+		CPUUsage:      cpuUsage,
+		MemoryPercent: memPercent,
+	}, nil
+
 }
 
 // ParseState parses the state of the vm.

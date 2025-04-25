@@ -40,11 +40,11 @@ type Service interface {
 	Get(ctx context.Context, id string) (VM, error)
 	List(ctx context.Context, offset, limit int) ([]VM, error)
 	Count(ctx context.Context) (int, error)
-	Delete(ctx context.Context, id string) (VM, error)
-	Start(ctx context.Context, id string) (VM, error)
-	Stop(ctx context.Context, id string) (VM, error)
-	Restart(ctx context.Context, id string) (VM, error)
-	Stats(ctx context.Context, id string) (VM, error)
+	Delete(ctx context.Context, id string) error
+	Start(ctx context.Context, id string) error
+	Stop(ctx context.Context, id string) error
+	Restart(ctx context.Context, id string) error
+	Stats(ctx context.Context, id string) (interface{}, error)
 }
 
 // NewService creates a new File service.
@@ -106,56 +106,30 @@ func (s service) List(ctx context.Context, offset, limit int) (
 	return listVMs, err
 }
 
-func (s service) Start(ctx context.Context, id string) (
-	VM, error) {
-
-	err := s.repo.Start(ctx, id)
-	if err != nil {
-		return s.Get(ctx, id)
-	}
-	return VM{}, err
+func (s service) Start(ctx context.Context, id string) error {
+	return s.repo.Start(ctx, id)
 }
 
-func (s service) Stop(ctx context.Context, id string) (
-	VM, error) {
+func (s service) Stop(ctx context.Context, id string) error {
 
-	err := s.repo.Stop(ctx, id)
-	if err != nil {
-		return s.Get(ctx, id)
-	}
-	return VM{}, err
+	return s.repo.Stop(ctx, id)
 }
 
-func (s service) Restart(ctx context.Context, id string) (
-	VM, error) {
+func (s service) Restart(ctx context.Context, id string) error {
 
-	err := s.repo.Restart(ctx, id)
-	if err != nil {
-		return s.Get(ctx, id)
-	}
-	return VM{}, err
+	return s.repo.Restart(ctx, id)
+
 }
 
-func (s service) Delete(ctx context.Context, id string) (
-	VM, error) {
+func (s service) Delete(ctx context.Context, id string) error {
+	return s.repo.Delete(ctx, id)
+}
 
-	oldVM, err := s.Get(ctx, id)
+func (s service) Stats(ctx context.Context, id string) (interface{}, error) {
+
+	stats, err := s.repo.Stats(ctx, id)
 	if err != nil {
 		return VM{}, err
 	}
-	err = s.repo.Delete(ctx, id)
-	if err != nil {
-		return VM{}, err
-	}
-	return oldVM, nil
-}
-
-func (s service) Stats(ctx context.Context, id string) (
-	VM, error) {
-
-	err := s.repo.Stats(ctx, id)
-	if err != nil {
-		return s.Get(ctx, id)
-	}
-	return VM{}, err
+	return stats, nil
 }

@@ -31,7 +31,7 @@ type Repository interface {
 	// Restart a VM given its ID.
 	Restart(ctx context.Context, id string) error
 	// Stats returns VM statistics and metrics.
-	Stats(ctx context.Context, id string) error
+	Stats(ctx context.Context, id string) (interface{}, error)
 }
 
 // NewRepository creates a new vm repository.
@@ -87,6 +87,6 @@ func (r repository) Restart(ctx context.Context, id string) error {
 }
 
 // Stats returns VM statistics and metrics.
-func (r repository) Stats(ctx context.Context, id string) error {
-	return nil
+func (r repository) Stats(ctx context.Context, id string) (interface{}, error) {
+	return r.vmMgr.GetStats(id)
 }

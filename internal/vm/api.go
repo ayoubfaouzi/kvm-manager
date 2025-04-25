@@ -77,53 +77,73 @@ func (r resource) delete(c echo.Context) error {
 
 	ctx := c.Request().Context()
 	id := c.Param("id")
-	vm, err := r.service.Delete(ctx, id)
+	err := r.service.Delete(ctx, id)
 	if err != nil {
 		return err
 	}
-	return c.JSON(http.StatusOK, vm)
+	return c.JSON(http.StatusOK, struct {
+		Status  string `json:"status"`
+		Message string `json:"message"`
+	}{"ok", "vm deleted successfully"})
+
 }
 
 func (r resource) start(c echo.Context) error {
 
 	ctx := c.Request().Context()
 	id := c.Param("id")
-	vm, err := r.service.Start(ctx, id)
+	err := r.service.Start(ctx, id)
 	if err != nil {
 		return err
 	}
-	return c.JSON(http.StatusOK, vm)
+	return c.JSON(http.StatusOK, struct {
+		Status  string `json:"status"`
+		Message string `json:"message"`
+	}{"ok", "vm started successfully"})
+
 }
 
 func (r resource) stop(c echo.Context) error {
 
 	ctx := c.Request().Context()
 	id := c.Param("id")
-	vm, err := r.service.Stop(ctx, id)
+	err := r.service.Stop(ctx, id)
 	if err != nil {
 		return err
 	}
-	return c.JSON(http.StatusOK, vm)
+	return c.JSON(http.StatusOK, struct {
+		Status  string `json:"status"`
+		Message string `json:"message"`
+	}{"ok", "vm stopped successfully"})
+
 }
 
 func (r resource) restart(c echo.Context) error {
 
 	ctx := c.Request().Context()
 	id := c.Param("id")
-	vm, err := r.service.Restart(ctx, id)
+	err := r.service.Restart(ctx, id)
 	if err != nil {
 		return err
 	}
-	return c.JSON(http.StatusOK, vm)
+	return c.JSON(http.StatusOK, struct {
+		Status  string `json:"status"`
+		Message string `json:"message"`
+	}{"ok", "vm restarted successfully"})
+
 }
 
 func (r resource) stats(c echo.Context) error {
 
 	ctx := c.Request().Context()
 	id := c.Param("id")
-	vm, err := r.service.Stats(ctx, id)
+	stats, err := r.service.Stats(ctx, id)
 	if err != nil {
 		return err
 	}
-	return c.JSON(http.StatusOK, vm)
+	return c.JSON(http.StatusOK, struct {
+		Status  string      `json:"status"`
+		Message string      `json:"message"`
+		Stats   interface{} `json:"stats"`
+	}{"ok", "stats retrieved successfully", stats})
 }
